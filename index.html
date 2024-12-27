@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swap Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+        }
+        #networkInfo {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #e8eaf6;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Perform Swap</h1>
+        <div id="networkInfo">Current Network: <span id="currentNetwork">Not connected</span></div>
+        
+        <div class="form-group">
+            <label for="liquidationPair">Liquidation Pair:</label>
+            <select id="liquidationPair">
+                <option value="">Select a liquidation pair</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="txFee">Transaction Fee:</label>
+            <input type="number" id="txFee" placeholder="Enter transaction fee">
+        </div>
+
+        <button onclick="connectWallet()" id="connectButton">Connect Wallet</button>
+        <button onclick="performSwap()" id="swapButton" disabled>Perform Swap</button>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // Contract ABI - Replace with your contract's ABI
+        const contractABI = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_liquidationPair",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "int256",
+                        "name": "Txfee",
+                        "type": "int256"
+                    }
+                ],
+                "name": "performSwap",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "success",
+                        "type": "bool"
+                    }
+                ],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        // Contract address - Replace with your contract's address
+        const contractAddress = "0x01542E7f59B0e0f21301586cCEFbD827e9d17cED";
+
+        // Predefined liquidation pairs - Replace with your actual pairs
+        const liquidationPairs = [
+            { address: "0xC8598b5fdEEe42A129D515b3f3a67E9D74481fFa", name: "Pair prizeWETH" },
+            { address: "0xEBa6Aa26ea2C51874a467cc310181617B3a4A266", name: "Pair prizeUSDC" },
+            { address: "0xAf2cF1E062D8cA21a33BdbE3F4f6A8aAc46Fde5E", name: "Pair prizeUSDC2" },
+            { address: "0xeBD0A1161e833c090F88D57159c91eEC371E7e67", name: "Pair prizeCBETH" },
+            { address: "0xF94F69EeDDDF0A088f0A16D9aC569C1729F6444F", name: "Pair przWSTETH" }
+        ];
+
+        let provider;
+        let signer;
+        let contract;
+
+        // Initialize the page
+        window.addEventListener('load', function() {
+            // Populate the dropdown
+            const select = document.getElementById('liquidationPair');
+            liquidationPairs.forEach(pair => {
+                const option = document.createElement('option');
+                option.value = pair.address;
+                option.textContent = pair.name;
+                select.appendChild(option);
+            });
+
+            // Enable button when both fields have values
+            const enableSwapButton = () => {
+                const pair = document.getElementById('liquidationPair').value;
+                const fee = document.getElementById('txFee').value;
+                document.getElementById('swapButton').disabled = !pair || !fee || !signer;
+            };
+
+            document.getElementById('liquidationPair').addEventListener('change', enableSwapButton);
+            document.getElementById('txFee').addEventListener('input', enableSwapButton);
+
+            // Check if MetaMask is installed
+            if (typeof window.ethereum === 'undefined') {
+                showStatus('Please install MetaMask to use this application', 'error');
+                document.getElementById('connectButton').disabled = true;
+                document.getElementById('swapButton').disabled = true;
+            }
+
+            // Listen for network changes
+            if (window.ethereum) {
+                window.ethereum.on('chainChanged', (chainId) => {
+                    window.location.reload();
+                });
+            }
+        });
+
+        async function connectWallet() {
+            try {
+                // Request account access
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // Create provider and signer
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                
+                // Get network information
+                const network = await provider.getNetwork();
+                document.getElementById('currentNetwork').textContent = 
+                    `${network.name} (chainId: ${network.chainId})`;
+                
+                // Create contract instance
+                contract = new ethers.Contract(contractAddress, contractABI, signer);
+                
+                // Update button states
+                document.getElementById('connectButton').textContent = 'Wallet Connected';
+                document.getElementById('connectButton').disabled = true;
+                
+                // Enable swap button if fields are filled
+                const pair = document.getElementById('liquidationPair').value;
+                const fee = document.getElementById('txFee').value;
+                document.getElementById('swapButton').disabled = !pair || !fee;
+                
+                showStatus('Wallet connected successfully!', 'success');
+            } catch (error) {
+                console.error(error);
+                showStatus(`Error connecting wallet: ${error.message}`, 'error');
+            }
+        }
+
+        async function performSwap() {
+            try {
+                if (!contract) {
+                    throw new Error('Please connect your wallet first');
+                }
+
+                // Get values from form
+                const liquidationPair = document.getElementById('liquidationPair').value;
+                const txFee = document.getElementById('txFee').value;
+
+                showStatus('Performing swap...', '');
+
+                // Call the contract function
+                const tx = await contract.performSwap(liquidationPair, txFee);
+                showStatus('Transaction submitted. Waiting for confirmation...', '');
+
+                // Wait for transaction to be mined
+                await tx.wait();
+
+                showStatus('Swap successful!', 'success');
+            } catch (error) {
+                console.error(error);
+
+                let errorMessage = error.message;
+                if (errorMessage.includes("execution reverted:")) {
+                    // Extract just the time information
+                    const timeMatch = errorMessage.match(/This many minutes.*?(\d+)/);
+                    if (timeMatch) {
+                        errorMessage = `execution reverted: This many minutes max until you will be at profitability: ${timeMatch[1]}`;
+                    }
+                }
+                showStatus(`Error: ${errorMessage}`, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+        }
+    </script>
+</body>
+</html>
