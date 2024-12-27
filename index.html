@@ -232,14 +232,20 @@
                 showStatus('Swap successful!', 'success');
             } catch (error) {
                 console.error(error);
-
                 let errorMessage = error.message;
+                const WETHMatch_Needed = errorMessage.match(/Requires more WETH.*?(\d+)/);
+                const WETHMatch_Avail = errorMessage.match(/Available.*?(\d+)/);
                 if (errorMessage.includes("execution reverted:")) {
                     // Extract just the time information
                     const timeMatch = errorMessage.match(/This many minutes.*?(\d+)/);
                     if (timeMatch) {
                         errorMessage = `execution reverted: This many minutes max until you will be at profitability: ${timeMatch[1]}`;
+                    }else if(WETHMatch_Needed){
+                        errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
+
                     }
+                }else if (WETHMatch) {
+                    errorMessage = `execution reverted: This many WETH are required on the contract, we only have ${WETHMatch[1]}`;
                 }
                 showStatus(`Error: ${errorMessage}`, 'error');
             }
