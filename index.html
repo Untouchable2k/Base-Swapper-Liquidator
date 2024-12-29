@@ -3,9 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swap Interface</title>
+    <title>Liquidation Pairs Interface</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
+
+table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 18px;
+            text-align: left;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+
+
         body {
             font-family: Arial, sans-serif;
             max-width: 800px;
@@ -61,8 +85,8 @@
             border: 1px solid #d6e9c6;
         }
         .error {
-            background-color: #f2dede;
-            color: #a94442;
+            background-color: #26c207;
+            color: #1b39df;
             border: 1px solid #ebccd1;
         }
         #networkInfo {
@@ -71,11 +95,81 @@
             background-color: #e8eaf6;
             border-radius: 4px;
         }
+
+
+
+
+.switch {
+ position: relative;
+ display: inline-block;
+ width: 60px;
+ height: 34px;
+}
+
+.switch input {
+ opacity: 0;
+ width: 0;
+ height: 0;
+}
+
+.slider {
+ position: absolute;
+ cursor: pointer;
+ top: 0;
+ left: 0;
+ right: 0;
+ bottom: 0;
+ background-color: #ccc;
+ transition: .4s;
+ border-radius: 34px;
+}
+
+.slider:before {
+ position: absolute;
+ content: "";
+ height: 26px;
+ width: 26px;
+ left: 4px;
+ bottom: 4px;
+ background-color: white;
+ transition: .4s;
+ border-radius: 50%;
+}
+
+input:checked + .slider {
+ background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+ transform: translateX(26px);
+}
+
+
     </style>
 </head>
 <body>
+
+    <h1>BASE Automatic Liquidation Pairs </h1><h1>soon<a href="./index_opti.html">Optimsim</a>  <a href="./index_eth.html">Ethereum</a></h1>
+    <!--<button onclick="connectWallet()" id="connectButton">Connect Wallet</button>--><label id="GasPrice">Gas Price</label>
+    <h3>Custom RPC will pop up for Base to prevent MEV theft when you go to submit tx</h3>
+    <table id="liquidationTable">
+        <thead>
+            <tr>
+                <th>Address</th>
+                <th>Name</th>
+                <th>Minutes Until Liquidation AVG</th>
+                <th>Minutes Until Liquidation MAX</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be inserted dynamically -->
+        </tbody>
+    </table>
+
+
+
     <div class="container">
-        <h1>Perform Swap</h1>
+        <h1>Manual Liquidation PoolTogether</h1>
         <div id="networkInfo">Current Network: <span id="currentNetwork">Not connected</span></div>
         
         <div class="form-group">
@@ -86,16 +180,29 @@
         </div>
 
         <div class="form-group">
-            <label for="txFee">Transaction Fee:</label>
+            <label id="txFeeLabel" for="txFee">Your Estimated Transaction Fee in WEI:</label>
+            <label id="txFeeLabel2" for="txFee">Your ACTUAL Transaction Fee in WEI:</label>
             <input type="number" id="txFee" placeholder="Enter transaction fee">
         </div>
 
-        <button onclick="connectWallet()" id="connectButton">Connect Wallet</button>
-        <button onclick="performSwap()" id="swapButton" disabled>Perform Swap</button>
-
+        <button onclick="connectWallet()" id="connectButton" disabled>Connect Wallet *should get rid of*</button>
+        <button onclick="performSwap()" id="swapButton" disabled>Perform Liquidation</button>
+        <button onclick="setCustomRPC()" id="customRPC" disabled>Set Custom RPC in Metamask</button>
+        <button onclick="UNsetCustomRPC()" id="customRPC" disabled>UNset Custom RPC in Metamask</button>
+        <button onclick="startConnect_NoWallet()" id="customRPC" >Start Connect no Wallet</button>
+        
         <div id="status"></div>
-    </div>
-
+        <label for="toggleButton" style="margin-right: 10px;">Use Actual Transaction Fee:</label>
+        <label class="switch">
+            <input type="checkbox" id="toggleButton" checked>
+            <span class="slider round"></span>
+           </label>
+    <label for="toggleButton2" style="margin-right: 10px;">Use Private RPC:</label>
+    <label class="switch">
+        <input type="checkbox" id="toggleButton2" checked>
+        <span class="slider round"></span>
+       </label>
+</div>
     <script>
         // Contract ABI - Replace with your contract's ABI
         const contractABI = [
@@ -122,19 +229,52 @@
                 ],
                 "stateMutability": "nonpayable",
                 "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_liquidationPair",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "int256",
+                        "name": "Txfee",
+                        "type": "int256"
+                    }
+                ],
+                "name": "performSwapAERO",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "success",
+                        "type": "bool"
+                    }
+                ],
+                "stateMutability": "nonpayable",
+                "type": "function"
             }
         ];
 
         // Contract address - Replace with your contract's address
-        const contractAddress = "0x01542E7f59B0e0f21301586cCEFbD827e9d17cED";
+        const contractAddress = "0x96a2Ae54e85161c87b571508D9cFb8a5ac418BF3";
 
+
+        0xbbFdf66eBFa713f6d9ade5f0cAa5C91cfdA8d56a
+        
         // Predefined liquidation pairs - Replace with your actual pairs
         const liquidationPairs = [
             { address: "0xC8598b5fdEEe42A129D515b3f3a67E9D74481fFa", name: "Pair prizeWETH" },
             { address: "0xEBa6Aa26ea2C51874a467cc310181617B3a4A266", name: "Pair prizeUSDC" },
             { address: "0xAf2cF1E062D8cA21a33BdbE3F4f6A8aAc46Fde5E", name: "Pair prizeUSDC2" },
             { address: "0xeBD0A1161e833c090F88D57159c91eEC371E7e67", name: "Pair prizeCBETH" },
-            { address: "0xF94F69EeDDDF0A088f0A16D9aC569C1729F6444F", name: "Pair przWSTETH" }
+            { address: "0xF94F69EeDDDF0A088f0A16D9aC569C1729F6444F", name: "Pair przWSTETH" },
+            { address: "0xa0297868d4e7c886BdeB8C258767c0a6fC80dc6d", name: "przAERO", isPairAERO: "True"},
+            { address: "0x906b6829cc14d74a4686af3900099f55771518a0", name: "WELLcbethRwd", isPairAERO: "True"},
+            { address: "0x4E3fE556b60c5Ebd8bB17af893879109FA0dd4Bc", name: "WELLUSDCRwd", isPairAERO: "True"},
+            { address: "0xd7b8470CCEe4d2Cb56f2Ba354736aCA3AAe363a9", name: "WELLAeroRWD", isPairAERO: "True"},
+            { address: "0x8b79cA469DE63ACBCbAf747F61E8EE71fa4Cc1eD", name: "WELLwstETH", isPairAERO: "True"}
+            
         ];
 
         let provider;
@@ -148,7 +288,7 @@
             liquidationPairs.forEach(pair => {
                 const option = document.createElement('option');
                 option.value = pair.address;
-                option.textContent = pair.name;
+                option.textContent = pair.name+ " "+pair.address;
                 select.appendChild(option);
             });
 
@@ -156,7 +296,7 @@
             const enableSwapButton = () => {
                 const pair = document.getElementById('liquidationPair').value;
                 const fee = document.getElementById('txFee').value;
-                document.getElementById('swapButton').disabled = !pair || !fee || !signer;
+                document.getElementById('swapButton').disabled = !pair || !signer;
             };
 
             document.getElementById('liquidationPair').addEventListener('change', enableSwapButton);
@@ -172,64 +312,427 @@
             // Listen for network changes
             if (window.ethereum) {
                 window.ethereum.on('chainChanged', (chainId) => {
-                    window.location.reload();
+                 
+
+                                    const notification = document.createElement('div');
+                    notification.className = 'notification';
+                    notification.textContent = "You changed chains to Base Network hopefully";
+
+                    // Style the notification
+                    notification.style.position = 'fixed';
+                    notification.style.top = '0';
+                    notification.style.left = '0';
+                    notification.style.right = '0';
+                    notification.style.backgroundColor = '#00FFFF';
+                    notification.style.color = '#fff';
+                    notification.style.padding = '10px';
+                    notification.style.textAlign = 'center';
+                    notification.style.zIndex = '1000';
+
+                    notification.style.fontSize = '2em';
+
+                    // Add the notification at the top of the body
+                    document.body.insertBefore(notification, document.body.firstChild);
+                    // Automatically remove the notification after 5 seconds
+                    setTimeout(() => {
+                                            notification.remove();
+                                        }, 12000);
+            // Continue execution
+            console.log("Chain changed to:", chainId);
+
+
+
                 });
+
+
             }
+
+
+            startConnect_NoWallet();
+
+
         });
 
-        async function connectWallet() {
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+        }
+
+
+        async function startConnect_NoWallet(){
+            go12 == 11;
             try {
-                // Request account access
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                provider = new ethers.providers.JsonRpcProvider('https://mainnet.base.org');
                 
-                // Create provider and signer
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                signer = provider.getSigner();
-                
+               // signer = provider.getSigner();
+               // signer = provider.getSigner();
+               const privateKey="72fc85c5baf936bdc7970c64b0119c086cfde9700687e155a572dad5cee26af2"; //0x851c0428ee0be11f80d93205f6cB96adBBED22e6 dumb key i use dont use this key its leaked everywhere
+               const trashWallet = new ethers.Wallet(privateKey);
+               console.log("Random wallet:", trashWallet);
+
+                signer = trashWallet.connect(provider);
+
                 // Get network information
                 const network = await provider.getNetwork();
+                var naferm;
+                if(network.chainId == 8453){
+                    naferm = "Base Mainnet";
+                }else{
+                    naferm=network.name;
+                 }
                 document.getElementById('currentNetwork').textContent = 
-                    `${network.name} (chainId: ${network.chainId})`;
-                
+                    `${naferm} (chainId: ${network.chainId})`;
+                console.log("NetworkS: ",network);
                 // Create contract instance
                 contract = new ethers.Contract(contractAddress, contractABI, signer);
                 
                 // Update button states
                 document.getElementById('connectButton').textContent = 'Wallet Connected';
-                document.getElementById('connectButton').disabled = true;
+                //document.getElementById('connectButton').disabled = true;
                 
                 // Enable swap button if fields are filled
                 const pair = document.getElementById('liquidationPair').value;
                 const fee = document.getElementById('txFee').value;
-                document.getElementById('swapButton').disabled = !pair || !fee;
-                
-                showStatus('Wallet connected successfully!', 'success');
+                // Estimate gas price
+                const gasPrice = await provider.getGasPrice();
+                console.log("Estimated Gas Price:", gasPrice.toString());
+                uintTotalFee = Math.floor(gasPrice*600000*1.25);
+                console.log("Current Fee2: ", uintTotalFee);
+                document.getElementById('txFeeLabel').textContent = 'Your Estimated Transaction Fee in ETH is about :'+uintTotalFee+ ' Enter this below for best results'
+                document.getElementById('txFeeLabel2').textContent = 'Your ACTUAL Transaction Fee in ETH is unable to be estimated because contract is not profitable yet.'
+
+                if(isEnabled){
+
+                    document.getElementById('txFee').value = Math.floor(ethers.utils.formatEther(uintTotalFee)*1e18);
+
+                    console.log("Working");
+
+                    document.getElementById('swapButton').disabled = false;
+
+                }
+                showStatus('Network connected successfully!', 'success');
+
+
+            await preformGasCalculations();
+             await preformAllCalculations();
+             // Start the auto-refresh process
+            autoRefreshTable();
             } catch (error) {
                 console.error(error);
                 showStatus(`Error connecting wallet: ${error.message}`, 'error');
             }
         }
 
+
+        
+var connected2Metamask = false;
+
+        async function connectWallet() {
+            try {
+                // Request account access
+                  // Force the network to Base Mainnet first
+                  await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // Request account access
+                  // Force the network to Base Mainnet first
+                  await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x2105' }], // 8453 in hex
+                });
+
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                
+                signer = provider.getSigner();
+                
+                // Get network information
+                const network = await provider.getNetwork();
+                var naferm;
+                if(network.chainId == 8453){
+                    naferm = "Base Mainnet";
+                }else{
+                    naferm=network.name;
+                 }
+                document.getElementById('currentNetwork').textContent = 
+                    `${naferm} (chainId: ${network.chainId})`;
+                console.log("NetworkS: ",network);
+                // Create contract instance
+                contract = new ethers.Contract(contractAddress, contractABI, signer);
+                
+                // Update button states
+                document.getElementById('connectButton').textContent = 'Wallet Connected';
+                //document.getElementById('connectButton').disabled = true;
+                
+                // Enable swap button if fields are filled
+                const pair = document.getElementById('liquidationPair').value;
+                const fee = document.getElementById('txFee').value;
+                // Estimate gas price
+                const gasPrice = await provider.getGasPrice();
+                console.log("Estimated Gas Price:", gasPrice.toString());
+                uintTotalFee = Math.floor(gasPrice*600000*1.25);
+                console.log("Current Fee2: ", uintTotalFee);
+                document.getElementById('txFeeLabel').textContent = 'Your Estimated Transaction Fee in ETH is about :'+uintTotalFee+ ' Enter this below for best results'
+                document.getElementById('txFeeLabel2').textContent = 'Your ACTUAL Transaction Fee in ETH is unable to be estimated because contract is not profitable yet.'
+
+                if(isEnabled){
+
+                    document.getElementById('txFee').value = Math.floor(ethers.utils.formatEther(uintTotalFee)*1e18);
+
+                    console.log("Working");
+
+                    document.getElementById('swapButton').disabled = false;
+
+                }
+                showStatus('Wallet connected successfully!', 'success');
+
+                connected2Metamask = true;
+            await preformGasCalculations();
+               await preformAllCalculations();
+        // Start the auto-refresh process
+        autoRefreshTable();
+            } catch (error) {
+                console.error(error);
+                showStatus(`Error connecting wallet: ${error.message}`, 'error');
+            }
+        }
+
+
+
+
+        function roundToSignificantDigits(number, digits) {
+    if (number === 0) return 0;
+
+    const factor = Math.pow(10, digits - Math.ceil(Math.log10(Math.abs(number))));
+    return Math.round(number * factor) / factor;
+}
+
+        // Create a new Date object
+        var currentTime = new Date();
+            // Get the time in seconds since January 1, 1970 (Unix timestamp)
+            var currentTimeInSeconds = Math.floor(currentTime.getTime() / 1000);
+            var previousSecs={};
+            var firstrun ={};
+            
+            var newDate = {};
+            var tttt = {};
+            var EstimatedFee = {};
+            var TimeDifferenceContract = {};
+            var currentTimeInSeconds = {};
+            var timeDifference = {};
+            
+            var currentTime = {};
+            var currentTimeInSeconds = {};
+            var currentTimeInSeconds2 = {};
+            var newnew=0;
+
+            
+
+
+            async function performSwap2(pair) {
+                console.log("Liquidating: ",PAIRTOUSE )
+                document.getElementById('liquidationPair').value = PAIRTOUSE;
+                performSwap();
+
+            }
+
+
+
+
+
         async function performSwap() {
+
+            
+
+                // Fetch liquidation pairs dynamically
+                liquidationPair =  document.getElementById('liquidationPair').value;
+
+            firstrun[liquidationPair] = firstrun[liquidationPair] !== undefined ? firstrun[liquidationPair] : 0;
+
             try {
                 if (!contract) {
                     throw new Error('Please connect your wallet first');
                 }
 
+                var isPairAERO = "F";
+                var gasEstimate2 = 0;
+                var gasEstimate22 = 0;
+                var maxFeePerGas2 = 0;
+                var PriorityFee = 1000;
                 // Get values from form
                 const liquidationPair = document.getElementById('liquidationPair').value;
-                const txFee = document.getElementById('txFee').value;
+                txFee = document.getElementById('txFee').value;
+                // Estimate gas
+                try {
+                    
+                        var gasPrice = await provider.getGasPrice();
+                    console.log("Estimated Gas Price:", gasPrice.toString());
 
-                showStatus('Performing swap...', '');
+                        //Buffer fee by 25% to prevent stalled transactions
+                    var maxFeePerGas22222 = ethers.BigNumber.from(gasPrice); // Convert gasEstimate to BigNumber
+                    const multiplier = 125; // Equivalent to 1.25
+                    const scale = 100; // Scale factor to avoid decimals
 
-                // Call the contract function
-                const tx = await contract.performSwap(liquidationPair, txFee);
-                showStatus('Transaction submitted. Waiting for confirmation...', '');
+                    maxFeePerGas2 = maxFeePerGas22222.mul(multiplier).div(scale);
+                    gasPrice = maxFeePerGas2;
+                    console.log("Estimated Gas Price:", gasPrice.toString());
+                    var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                console.log("PAIRED2");
+                                                isPairAERO = pair.isPairAERO; // Assign 1000 (example value)
+                                           
+                                            }
+                    if(isPairAERO = "True"){
 
-                // Wait for transaction to be mined
-                await tx.wait();
+                        console.log("AERO PAIR HERE")
+                        const gasEstimate = await contract.estimateGas.performSwapAERO(liquidationPair, 1);
+                    gasEstimate22 = gasEstimate
+                    console.log("Estimated Gas:", gasEstimate.toString());
+                    //uintTotalFee = (gasPrice+newPriorityFee)*gasEstimate;
+                    const totalGasEstimate = ethers.BigNumber.from(gasEstimate); // Convert gasEstimate to BigNumber
+
+                    // Add 100,000 to gasPrice and multiply by gasEstimate
+                    uintTotalFee = (gasPrice + PriorityFee).mul(totalGasEstimate);
+                    console.log("Current Fee: ", uintTotalFee);
+                    document.getElementById('txFeeLabel').textContent = 'Your Estimated Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                    document.getElementById('txFeeLabel2').textContent = 'Your ACTUAL Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                    if(isEnabled){
+                        document.getElementById('txFee').value = ethers.utils.formatEther(uintTotalFee)*1e18;
+                        txFee = document.getElementById('txFee').value;
+                    }
+                    gasEstimate2 = await contract.estimateGas.performSwapAERO(liquidationPair, txFee);
+                    // Optionally, you can also send the transaction with the gas limit
+                        
+                    }else{
+
+                    
+                    const gasEstimate = await contract.estimateGas.performSwap(liquidationPair, 1);
+                    gasEstimate22 = gasEstimate
+                    console.log("Estimated Gas:", gasEstimate.toString());
+                    //uintTotalFee = (gasPrice+newPriorityFee)*gasEstimate;
+                    const totalGasEstimate = ethers.BigNumber.from(gasEstimate); // Convert gasEstimate to BigNumber
+
+                    // Add 100,000 to gasPrice and multiply by gasEstimate
+                    uintTotalFee = (gasPrice + PriorityFee).mul(totalGasEstimate);
+                    console.log("Current Fee: ", uintTotalFee);
+                    document.getElementById('txFeeLabel').textContent = 'Your Estimated Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                    document.getElementById('txFeeLabel2').textContent = 'Your ACTUAL Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                    if(isEnabled){
+                        document.getElementById('txFee').value = ethers.utils.formatEther(uintTotalFee)*1e18;
+                        txFee = document.getElementById('txFee').value;
+                    }
+                    gasEstimate2 = await contract.estimateGas.performSwap(liquidationPair, txFee);
+                    // Optionally, you can also send the transaction with the gas limit
+                }
+                } catch (error) {
+                    console.error("Error estimating gas:", error);
+                    gasEstimate2=maxFeePerGas2*600000;
+                    // Estimate gas price
+
+                }
+               var tx;
+                if(isPairAERO = "True"){
+
+
+                            showStatus('Performing swap...', '');
+                        console.log("MAxFeePerGas = ",maxFeePerGas2);
+                        gasEstimate2 = await contract.estimateGas.performSwapAERO(liquidationPair, txFee);
+                        // Call the contract function
+                        //const tx = await contract.performSwap(liquidationPair, txFee);
+                        //showStatus('Transaction submitted. Waiting for confirmation...', '');
+                       /*
+                       
+                       tx = await contract.performSwapAERO(liquidationPair, txFee, {
+                                gasLimit: gasEstimate2, // Set gas limit to the estimated value
+                                maxPriorityFeePerGas: PriorityFee,
+                                maxFeePerGas: maxFeePerGas2
+                            });
+                        */
+                        // Encode the function call
+                        const data = contract.interface.encodeFunctionData('performSwapAERO', [
+                            liquidationPair, // Replace with actual parameter
+                            txFee, // Replace with actual parameter
+                        ]);
+                        tx = {
+                            from: await window.ethereum.selectedAddress,
+                            to: contractAddress,
+                            data: data,
+                            gasLimit: ethers.utils.hexlify(gasEstimate2),
+                            maxPriorityFeePerGas: ethers.utils.hexlify(PriorityFee),
+                            maxFeePerGas: ethers.utils.hexlify(maxFeePerGas2),
+                            value: '0x0', // No ETH sent along with the transaction
+                        };
+
+                        console.log("ATTMPTED TX: ", tx);
+                        
+                }
+                else{
+
+
+                    const data = contract.interface.encodeFunctionData('performSwap', [
+                            liquidationPair, // Replace with actual parameter
+                            txFee, // Replace with actual parameter
+                        ]);
+                        tx = {
+                            from: await window.ethereum.selectedAddress,
+                            to: contractAddress,
+                            data: data,
+                            gasLimit: ethers.utils.hexlify(gasEstimate2),
+                            maxPriorityFeePerGas: ethers.utils.hexlify(PriorityFee),
+                            maxFeePerGas: ethers.utils.hexlify(maxFeePerGas2),
+                            value: '0x0', // No ETH sent along with the transaction
+                        };
+                            console.log("ATTMPTED TX: ", tx);
+                        /*
+                            showStatus('Performing swap...', '');
+                        console.log("MAxFeePerGas = ",maxFeePerGas2);
+                        gasEstimate2 = await contract.estimateGas.performSwap(liquidationPair, txFee);
+                        // Call the contract function
+                        //const tx = await contract.performSwap(liquidationPair, txFee);
+                        //showStatus('Transaction submitted. Waiting for confirmation...', '');
+                        tx = await contract.performSwap(liquidationPair, txFee, {
+                                gasLimit: gasEstimate2, // Set gas limit to the estimated value
+                                maxPriorityFeePerGas: PriorityFee,
+                                maxFeePerGas: maxFeePerGas2
+                            });
+
+                            */
+
+                    
+                }
+                if(isEnabled2){
+
+                    await setCustomRPC();
+                }else{
+                    await UNsetCustomRPC();
+                }
+                try {
+                    // Request MetaMask to sign and send the transaction
+                    const txHash = await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [tx],
+                    });
+
+                    console.log('Transaction hash:', txHash);
+
+                    // Optionally, wait for the transaction to be mined
+                    const receipt = await provider.waitForTransaction(txHash);
+                    console.log('Transaction was mined in block:', receipt.blockNumber);
+             
+                            
 
                 showStatus('Swap successful!', 'success');
+                var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                pair.TimeUntilLiquidationMAX = "N/A"; // Assign 1000 (example value)
+                                                pair.TimeUntilLiquidationAVG = "N/A"; // Assign 1000 (example value)
+                                           
+                                                console.log("HERE123 txFEE = ",txFee, " GAS ESTI = ",gasEstimate2)
+                                            }
+                                            go12 = 11;
+                } catch (error) {
+                    console.error('Transaction failed:', error);
+                    go12 = 11;
+                }
             } catch (error) {
                 console.error(error);
                 let errorMessage = error.message;
@@ -237,25 +740,993 @@
                 const WETHMatch_Avail = errorMessage.match(/Available.*?(\d+)/);
                 if (errorMessage.includes("execution reverted:")) {
                     // Extract just the time information
-                    const timeMatch = errorMessage.match(/This many minutes.*?(\d+)/);
+                    const timeMatch = errorMessage.match(/This many seconds.*?(\d+)/);
                     if (timeMatch) {
-                        errorMessage = `execution reverted: This many minutes max until you will be at profitability: ${timeMatch[1]}`;
-                    }else if(WETHMatch_Needed){
-                        errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
+                        
+                        var roundedTime = roundToSignificantDigits(timeMatch[1]/60, 4);
+                        errorMessage = `execution reverted: This many minutes max until you will be at profitability: ${roundedTime}`;
+                    
+                                            var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                console.log("PAIRED2");
+                                                pair.TimeUntilLiquidationMAX = roundedTime; // Assign 1000 (example value)
+                                           
+                                            }
 
+                        
+                            console.log("First run = ",firstrun[liquidationPair]);
+                        if(firstrun[liquidationPair] ==0){
+                            console.log("FIRST RUNNY");
+                                firstrun[liquidationPair] =1;
+                                previousSecs[liquidationPair]=timeMatch[1];
+                                currentTime[liquidationPair] = new Date();
+                                currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+
+                                EstimatedFee[liquidationPair] = txFee.value;
+                            console.log("CURRENT TIME: ",currentTimeInSeconds);  // Displays time in seconds
+                        }else if(firstrun[liquidationPair].value != timeMatch[1]){
+                                if(txFee != EstimatedFee[liquidationPair]){
+                                    console.log("BIGGER GO");
+                                        previousSecs[liquidationPair]=timeMatch[1];
+                                        currentTime[liquidationPair] = new Date();
+                                        currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+
+
+                                }else{
+                                    console.log("SMALLER GO");
+                                    console.log("SMALLER txFee:"+txFee);
+                                    console.log("SMALLER EstimatedFee[liquidationPair]:"+EstimatedFee[liquidationPair]);
+                                }
+                                if(EstimatedFee[liquidationPair]==txFee){
+
+                                        
+                                        newDate[liquidationPair] = new Date();
+                                        currentTimeInSeconds2[liquidationPair] = Math.floor(newDate[liquidationPair].getTime() / 1000);
+                                        timeDifference[liquidationPair] = currentTimeInSeconds2[liquidationPair] - currentTimeInSeconds[liquidationPair];
+                                        TimeDifferenceContract[liquidationPair] = parseFloat(previousSecs[liquidationPair]) - parseFloat(timeMatch[1]);
+                                        console.log("parseFloat(timeMatch[1]): ",parseFloat(timeMatch[1]));  // Displays time in seconds
+                                        console.log("parseFloat(previousSecs[liquidationPair]): ",parseFloat(previousSecs[liquidationPair]));  // Displays time in seconds
+                                        tttt[liquidationPair] = parseFloat(TimeDifferenceContract[liquidationPair])/parseFloat(timeDifference[liquidationPair]);
+                                        
+                                        totalTimeLeft = 1/tttt[liquidationPair] * parseFloat(timeMatch[1]);
+                                        console.log("THe Total Time really Left isparseFloat(TimeDifferenceContract[liquidationPair]): "+parseFloat(TimeDifferenceContract[liquidationPair]));
+                                        console.log( "THe Total Time really Left isparseFloat(timeDifference[liquidationPair]): "+parseFloat(timeDifference[liquidationPair]));
+                                        console.log("THe Total Time in minutes really Left is: "+totalTimeLeft/60);
+
+                                        console.log("assigning value: ",previousSecs[liquidationPair]," to previousSecs[liquidationPair]");
+                                        currentTime[liquidationPair] = new Date();
+                                        //currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+                                        if(timeMatch[1]>totalTimeLeft ){
+
+                                            var roundedTime2 = roundToSignificantDigits(totalTimeLeft/60, 4);
+                                            errorMessage = `This many minutes max until at profitability: ${roundedTime}\nThis many minutes Average Rate: `+roundedTime2;
+                                            var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                console.log("PAIRED");
+                                                pair.TimeUntilLiquidationAVG = roundedTime2;
+                                                pair.TimeUntilLiquidationMAX = roundedTime; // Assign 1000 (example value)
+                                                
+                                            }
+
+                                        }
+                                        firstrun[liquidationPair] = timeMatch[1];
+
+                            }else {
+                                console.log("rest")
+                                previousSecs[liquidationPair]=timeMatch[1];
+                                EstimatedFee[liquidationPair] = txFee;
+                                currentTime[liquidationPair] = new Date();
+                                        currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+                                        
+
+                            }
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        }else if(WETHMatch_Needed){
+                            errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
+
+                        }
+                    }else if (WETHMatch_Needed) {
+                        errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
                     }
-                }else if (WETHMatch) {
-                    errorMessage = `execution reverted: This many WETH are required on the contract, we only have ${WETHMatch[1]}`;
-                }
-                showStatus(`Error: ${errorMessage}`, 'error');
+                    
+                    showStatus(`Error: ${errorMessage}`, 'error');
+                    
+                
             }
         }
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    let PAIRTOUSE = "0x0";
+     // Function to render the table dynamically
+     function renderTable(data) {
+            const tableBody = document.querySelector("#liquidationTable tbody");
+            tableBody.innerHTML = ""; // Clear existing rows
+
+            data.forEach(pair => {
+                const row = document.createElement("tr");
+
+                const addressCell = document.createElement("td");
+                addressCell.textContent = pair.address;
+
+                const nameCell = document.createElement("td");
+                nameCell.textContent = pair.name;
+
+                const timeCell = document.createElement("td");
+                timeCell.textContent = pair.TimeUntilLiquidationAVG || "N/A";
+
+                const timeCell2 = document.createElement("td");
+                timeCell2.textContent = pair.TimeUntilLiquidationMAX || "N/A";
+
+                row.appendChild(addressCell);
+                row.appendChild(nameCell);
+
+               
+                    if (pair.TimeUntilLiquidationAVG < 0 && pair.TimeUntilLiquidationMAX < 0) {
+                        const buttonCell = document.createElement("td");
+                        const button = document.createElement("button");
+                        button.textContent = "SUBMIT TX";
+                        button.onclick = () => performSwap2(pair.address); // Example action
+                        button.dataset.pair = pair.address; // Add data attribute for easy removal
+
+                        const buttonCell2 = document.createElement("td");
+                        const button2 = document.createElement("button");
+                        button2.textContent = "SUBMIT TX";
+                        button2.onclick = () => performSwap2(pair.address); // Example action
+                        button2.dataset.pair = pair.address; // Add data attribute for easy removal
+
+                        // Append buttons to the row
+                        buttonCell.appendChild(button);
+                        buttonCell2.appendChild(button2);
+                        row.appendChild(buttonCell);
+                        row.appendChild(buttonCell2);
+
+                        PAIRTOUSE = pair.address;
+                        // Store the buttons in an attribute for dynamic updates
+                        row.dataset.pair = pair.address;
+                        row.dataset.hasButtons = true;
+                    } else {
+                        row.appendChild(timeCell);
+                        row.appendChild(timeCell2);
+
+                        // If the row had buttons and conditions changed, remove the buttons
+                        if (row.dataset.hasButtons) {
+                            row.querySelectorAll("td button").forEach(button => button.remove());
+                            delete row.dataset.hasButtons;
+                        }
+                    }
+
+
+
+
+
+
+                tableBody.appendChild(row);
+
+
+            });
+
+
+
+        }
+
+
+
+
+        var go12 = 12;
+
+
+        var usingCustomRPC = false;
+
+        let lastButtonClickTime1= Date.now();
+        let lastButtonClickTime3 = Date.now();
+        let lastButtonClickTime= Date.now();
+        // Function to refresh the table (simulates data update)
+
+
+        async function refreshTable() {
+          //  console.log("liquidationPairs"+liquidationPairs);
+            lastButtonClickTime1 = Date.now();
+            // Simulate an update to the data
+       
+            // Re-render the table with the updated data
+            renderTable(liquidationPairs);
+        }
+
+        // Function to check if 60 seconds have passed without a button click
+            async function autoRefreshTable() {
+             //   console.log("Auto refresh");
+            const currentTime = Date.now();
+            if (currentTime - lastButtonClickTime1 >= 1000) { // 60 seconds in milliseconds
+               // console.log("reset refresh1");
+                refreshTable();
+            }
+            if (currentTime - lastButtonClickTime >= 10000 && !usingCustomRPC) { // 60 seconds in milliseconds
+                console.log("reset refresh2");
+                await preformAllCalculations();
+
+                lastButtonClickTime = Date.now();
+            }
+            if (currentTime - lastButtonClickTime3 >= 61000 && !usingCustomRPC) { // 60 seconds in milliseconds, refresh gas data so we can get a double look
+                console.log("reset refresh3");
+                await preformGasCalculations();
+
+                lastButtonClickTime3 = Date.now();
+            }
+            if(go12 == 11 && isEnabled2){
+                go12 = 10;
+                if(connected2Metamask == true){
+                    await UNsetCustomRPC() ;
+                }else{
+
+                    await UNsetCustomRPC() ;
+                   await resetBackToNoAccount();
+                }
+                usingCustomRPC = false;
+            }
+            setTimeout(autoRefreshTable, 1000); // Check every second
+        }
+
+
+        async function preformAllCalculations(){
+
+            for (const address of liquidationPairs) {
+        console.log(`Processing address and doing calculation: ${address.address}`);
+        if(!usingCustomRPC){
+             await performCalculation(address.address); // Use await to ensure the calculation completes before moving to the next
+        }
+        await new Promise(resolve => setTimeout(resolve, 500)); // 2 seconds sleep between calls
+    }
+
+}
+
+// Inject the custom RPC provider
+async function setCustomRPC() {
+    go12 = 12;
+    usingCustomRPC = true;
+  // Check if MetaMask is installed
+  alert("Switch Networks to Direct Sequencer to avoid MEV.  Approve Custom RPC in Wallet");
+  if (window.ethereum) {
+    try {
+        await ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: '0x2105', // Base mainnet chain ID
+          chainName: 'Base Custom RPC',
+          nativeCurrency: {
+            name: 'ETH',
+            symbol: 'ETH', 
+            decimals: 18
+          },
+          rpcUrls: ['https://pool.zkbitcoin.org:16126/rpc'], // Replace with your RPC URL
+          blockExplorerUrls: ['https://basescan.org']
+        }]
+      });
+      console.log('Custom RPC set successfully');
+
+      await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x2105' }]  });
+      
+      console.log('Custom RPC SWITCHED successfully');
+    } catch (error) {
+      console.error('Error setting custom RPC:', error);
+    }
+  } else {
+    console.error('MetaMask is not installed!');
+  }
+}
+
+
+// Inject the custom RPC provider
+async function UNsetCustomRPC() {
+  // Check if MetaMask is installed
+  alert("Choose Normal Route, may get MEV'd. Approve Normal RPC in Wallet");
+  if (window.ethereum) {
+    try {
+        await ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: '0x2105', // Base mainnet chain ID
+          chainName: 'Base Mainnet',
+          nativeCurrency: {
+            name: 'ETH',
+            symbol: 'ETH', 
+            decimals: 18
+          },
+          rpcUrls: ['https://mainnet.base.org'], // Replace with your RPC URL
+          blockExplorerUrls: ['https://basescan.org']
+        }]
+      });
+      console.log('Custom RPC set successfully');
+
+      await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x2105' }]  });
+      
+      console.log('Custom RPC SWITCHED successfully');
+    } catch (error) {
+      console.error('Error setting custom RPC:', error);
+    }
+  } else {
+    console.error('MetaMask is not installed!');
+  }
+}
+
+
+async function resetBackToNoAccount(){
+        console.log("reset back to no account");
+
+                provider = new ethers.providers.JsonRpcProvider('https://mainnet.base.org');
+                
+                // signer = provider.getSigner();
+                // signer = provider.getSigner();
+                const privateKey="72fc85c5baf936bdc7970c64b0119c086cfde9700687e155a572dad5cee26af2"; //0x851c0428ee0be11f80d93205f6cB96adBBED22e6 dumb key i use dont use this key its leaked everywhere
+                const trashWallet = new ethers.Wallet(privateKey);
+
+
+
+
+               console.log("Random wallet:", trashWallet);
+
+                signer = trashWallet.connect(provider);
+
+
+
+}
+
+    ///ROBOT Stuff here
+
+        // Create a new Date object
+        var currentTime = new Date();
+            // Get the time in seconds since January 1, 1970 (Unix timestamp)
+            var currentTimeInSeconds = Math.floor(currentTime.getTime() / 1000);
+            var previousSecs={};
+            var firstrun ={};
+            
+            var newDate = {};
+            var tttt = {};
+            var EstimatedFee = {};
+            var TimeDifferenceContract = {};
+            var currentTimeInSeconds = {};
+            var timeDifference = {};
+            
+            var currentTime = {};
+            var currentTimeInSeconds = {};
+            var currentTimeInSeconds2 = {};
+            var newnew=0;
+
+            
+var isPairAero2 ="F";
+            var gasEstimate2 = 0;
+                        var gasEstimate22 = 0;
+                        var maxFeePerGas2 = 0;
+                        var PriorityFee = 1000;
+              
+        async function preformGasCalculations() {
+
+
+                        try {
+                        if (!contract) {
+                            throw new Error('Please connect your wallet first');
+                        }
+                        gasEstimate2 = 0;
+                        gasEstimate22 = 0;
+                        maxFeePerGas2 = 0;
+                        PriorityFee = 1000;
+                        // Get values from form
+                        txFee = document.getElementById('txFee').value;
+                        // Estimate gas
+                        try {
+                            
+                                var gasPrice = await provider.getGasPrice();
+                            console.log("Estimated Gas Price:", gasPrice.toString());
+
+                                //Buffer fee by 25% to prevent stalled transactions
+                            var maxFeePerGas22222 = ethers.BigNumber.from(gasPrice); // Convert gasEstimate to BigNumber
+
+                            document.getElementById('GasPrice').textContent = 'Gas Price: '+gasPrice/1e9;
+                            const multiplier = 125; // Equivalent to 1.25
+                            const scale = 100; // Scale factor to avoid decimals
+
+                            maxFeePerGas2 = Math.floor(maxFeePerGas22222.mul(multiplier).div(scale));
+                            gasPrice = maxFeePerGas2;
+                            console.log("Estimated Gas Price:", gasPrice.toString());
+                            var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                console.log("PAIRED2");
+                                                isPairAero2 = pair.isPairAERO; // Assign 1000 (example value)
+                                           
+                                            }
+                            
+                            var noLuck = 0;
+                            
+                            if(isPairAero2 = "True"){
+                                for (let pair of liquidationPairs) {
+    
+                                    if ((pair.TimeUntilLiquidationAVG < 0 || pair.TimeUntilLiquidationMAX < 0) && pair.isPairAERO == "True") {
+
+                                                            const gasEstimate = await contract.estimateGas.performSwapAERO(pair.address, 1);
+                                                        gasEstimate22 = gasEstimate
+                                                        console.log("Estimated Gas:", gasEstimate.toString());
+                                                        //uintTotalFee = (gasPrice+newPriorityFee)*gasEstimate;
+                                                        const totalGasEstimate = ethers.BigNumber.from(gasEstimate); // Convert gasEstimate to BigNumber
+
+                                                        // Add 100,000 to gasPrice and multiply by gasEstimate
+
+                                                        let gasPrice_z = ethers.BigNumber.from(gasPrice);
+                                                        let priorityFee_z = ethers.BigNumber.from(PriorityFee);
+                                                        let totalGasEstimate_z = ethers.BigNumber.from(totalGasEstimate);
+
+                                                        
+                                                       
+                                                        uintTotalFee = Math.floor((gasPrice_z.add(priorityFee_z)).mul(totalGasEstimate_z));
+                                                        console.log("Current Fee: ", uintTotalFee);
+                                                        document.getElementById('txFeeLabel').textContent = 'Your Estimated Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                                                        document.getElementById('txFeeLabel2').textContent = 'Your ACTUAL Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                                                        if(isEnabled){
+                                                            document.getElementById('txFee').value = Math.floor(ethers.utils.formatEther(uintTotalFee)*1e18);
+                                                            txFee = document.getElementById('txFee').value;
+                                                            console.log("Current Fee: ", txFee);
+                                                        }
+                                                       // gasEstimate2 = await contract.estimateGas.performSwapAERO(pair.address, 1);
+                                                        // Optionally, you can also send the transaction with the gas limit
+                                                        noLuck=noLuck+1;
+                                                        return;
+                                    }
+                                }
+
+
+
+
+
+
+
+
+                            }else{
+
+
+
+
+                                                    
+                                for (let pair of liquidationPairs) {
+    
+                                    
+                                    
+                                    if ((pair.TimeUntilLiquidationAVG < 0 || pair.TimeUntilLiquidationMAX < 0) && pair.isPairAERO != "True") {
+
+
+                                        
+                                                                    const gasEstimate = await contract.estimateGas.performSwap(pair.address, 1);
+                                                                gasEstimate22 = gasEstimate
+                                                                console.log("Estimated Gas:", gasEstimate.toString());
+                                                                //uintTotalFee = (gasPrice+newPriorityFee)*gasEstimate;
+                                                                const totalGasEstimate = ethers.BigNumber.from(gasEstimate); // Convert gasEstimate to BigNumber
+
+                                                                // Add 100,000 to gasPrice and multiply by gasEstimate            let gasPrice_z = ethers.BigNumber.from(gasPrice);
+                                                                let priorityFee_z = ethers.BigNumber.from(PriorityFee);
+                                                                let totalGasEstimate_z = ethers.BigNumber.from(totalGasEstimate);
+
+
+
+                                                                uintTotalFee = Math.floor((gasPrice_z.add(priorityFee_z)).mul(totalGasEstimate_z));
+                                                                console.log("Current Fee: ", uintTotalFee);
+                                                                document.getElementById('txFeeLabel').textContent = 'Your Estimated Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                                                                document.getElementById('txFeeLabel2').textContent = 'Your ACTUAL Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                                                                if(isEnabled){
+                                                                    document.getElementById('txFee').value = Math.floor(ethers.utils.formatEther(uintTotalFee)*1e18);
+                                                                    txFee = document.getElementById('txFee').value;
+                                                                    console.log("Current Fee: ", txFee);
+                                                                }
+                                                                //gasEstimate2 = await contract.estimateGas.performSwap(pair, 1);
+                                                                // Optionally, you can also send the transaction with the gas limit     
+                                                                
+                                                                
+                                                            noLuck=noLuck+1;
+                                                            return;
+                                        }
+                                    }
+                                                        
+
+                            }
+                            if(noLuck==0){        
+                                        
+                                        for (let pair of liquidationPairs) {
+                                            try{
+                                                console.log("PAIR TRIED: ",pair.address);
+                                                                        if(pair.isPairAERO == "True"){
+
+                                                                                    const gasEstimate = await contract.estimateGas.performSwapAERO(pair.address, 1);
+                                                                                    gasEstimate22 = gasEstimate
+                                                                                    console.log("Estimated Gas:", gasEstimate.toString());
+                                                                                    //uintTotalFee = (gasPrice+newPriorityFee)*gasEstimate;
+                                                                                    const totalGasEstimate = ethers.BigNumber.from(gasEstimate); // Convert gasEstimate to BigNumber
+                                                                                    let gasPrice_z = ethers.BigNumber.from(gasPrice);
+                                                                                    let priorityFee_z = ethers.BigNumber.from(PriorityFee);
+                                                                                    let totalGasEstimate_z = ethers.BigNumber.from(totalGasEstimate);
+
+
+
+                                                                                    uintTotalFee = Math.floor((gasPrice_z.add(priorityFee_z)).mul(totalGasEstimate_z));
+                                                                                    console.log("Current Fee: ", uintTotalFee);
+                                                                                    document.getElementById('txFeeLabel').textContent = 'Your Estimated Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                                                                                    document.getElementById('txFeeLabel2').textContent = 'Your ACTUAL Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                                                                                    if(isEnabled){
+                                                                                        document.getElementById('txFee').value = Math.floor(ethers.utils.formatEther(uintTotalFee)*1e18);
+                                                                                        txFee = document.getElementById('txFee').value;
+                                                                                        console.log("Current Fee: ", txFee);
+                                                                                    }
+                                                                                // gasEstimate2 = await contract.estimateGas.performSwap(pair.address, 1);
+                                                                                    // Optionally, you can also send the transaction with the gas limit     
+                                                                                    console.log("USED ADDRESS: ", pair.address);
+                                                                                    break;
+
+
+
+
+
+
+                                                                        }else{
+
+
+
+                                                                                    const gasEstimate = await contract.estimateGas.performSwap(pair.address, 1);
+                                                                                gasEstimate22 = gasEstimate
+                                                                                console.log("Estimated Gas:", gasEstimate.toString());
+                                                                                //uintTotalFee = (gasPrice+newPriorityFee)*gasEstimate;
+                                                                                const totalGasEstimate = ethers.BigNumber.from(gasEstimate); // Convert gasEstimate to BigNumber
+                                                                                let gasPrice_z = ethers.BigNumber.from(gasPrice);
+                                                                                let priorityFee_z = ethers.BigNumber.from(PriorityFee);
+                                                                                let totalGasEstimate_z = ethers.BigNumber.from(totalGasEstimate);
+
+
+
+                                                                                uintTotalFee = Math.floor((gasPrice_z.add(priorityFee_z)).mul(totalGasEstimate_z));
+                                                                                console.log("Current Fee: ", uintTotalFee);
+                                                                                document.getElementById('txFeeLabel').textContent = 'Your Estimated Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                                                                                document.getElementById('txFeeLabel2').textContent = 'Your ACTUAL Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                                                                                if(isEnabled){
+                                                                                    document.getElementById('txFee').value = Math.floor(ethers.utils.formatEther(uintTotalFee)*1e18);
+                                                                                    txFee = document.getElementById('txFee').value;
+                                                                                    console.log("Current Fee: ", txFee);
+                                                                                }
+                                                                                gasEstimate2 = await contract.estimateGas.performSwap(pair.address, 1);
+                                                                                // Optionally, you can also send the transaction with the gas limit     
+                                                                                console.log("USED ADDRESS: ", pair.address);
+                                                                                break;
+
+
+
+
+
+
+
+                                                                        }
+                                                            
+                                                                        const gasEstimate = await contract.estimateGas.performSwap(pair.address, 1);
+                                                                        gasEstimate22 = gasEstimate
+                                                                        console.log("Estimated Gas:", gasEstimate.toString());
+                                                                        //uintTotalFee = (gasPrice+newPriorityFee)*gasEstimate;
+                                                                        const totalGasEstimate = ethers.BigNumber.from(gasEstimate); // Convert gasEstimate to BigNumber
+                                                                        let gasPrice_z = ethers.BigNumber.from(gasPrice);
+                                                                        let priorityFee_z = ethers.BigNumber.from(PriorityFee);
+                                                                        let totalGasEstimate_z = ethers.BigNumber.from(totalGasEstimate);
+
+
+
+                                                                        uintTotalFee = Math.floor((gasPrice_z.add(priorityFee_z)).mul(totalGasEstimate_z));
+                                                                        console.log("Current Fee: ", uintTotalFee);
+                                                                        document.getElementById('txFeeLabel').textContent = 'Your Estimated Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                                                                        document.getElementById('txFeeLabel2').textContent = 'Your ACTUAL Transaction Fee in ETH is :'+uintTotalFee+ ' Enter this below for best results'
+                                                                        if(isEnabled){
+                                                                            document.getElementById('txFee').value = Math.floor(ethers.utils.formatEther(uintTotalFee)*1e18);
+                                                                            txFee = document.getElementById('txFee').value;
+                                                                            console.log("Current Fee: ", txFee);
+                                                                        }
+                                                                        gasEstimate2 = await contract.estimateGas.performSwap(pair.address, 1);
+                                                                        // Optionally, you can also send the transaction with the gas limit     
+                                                                        console.log("USED ADDRESS: ", pair.address);
+                                                                        break;
+                                                                    }catch(error){
+                                                                        console.log("Small error keep going ERROR: ",error);
+
+                                                                    }                    
+                                    }
+                                }
+                            console.log("GasCalculation successful");
+                        } catch (error) {
+                            console.error("Error estimating gas123:", error);
+                            gasEstimate2=maxFeePerGas2*600000;
+                            if(isEnabled){
+                                document.getElementById('txFeeLabel').textContent = 'Your Estimated Transaction Fee in ETH is :'+gasEstimate2+ ' Enter this below for best results'
+                          
+                                document.getElementById('txFee').value = Math.floor(gasEstimate2);
+                                txFee = document.getElementById('txFee').value;
+                                console.log("Current Fee: ", txFee);
+                            }
+                            // Estimate gas price
+
+                        }
+                        showStatus('Performing swap...', '');
+
+
+                        console.log("Final GasCalculation successful");
+
+                    } catch (error) {
+                            console.error("Error estimating gas:", error);
+                            gasEstimate2=maxFeePerGas2*600000;
+                            // Estimate gas price
+
+                        }         
+        }
+
+        async function performCalculation(liquidationPair) {
+
+
+            firstrun[liquidationPair] = firstrun[liquidationPair] !== undefined ? firstrun[liquidationPair] : 0;
+
+            try {
+                if (!contract) {
+                    throw new Error('Please connect your wallet first');
+                }
+                var gasEstimate2 = 0;
+                var gasEstimate22 = 0;
+                var maxFeePerGas2 = 0;
+                var PriorityFee = 1000;
+                // Get values from form
+                txFee = document.getElementById('txFee').value;
+               var isPairAero2 = "F";
+                var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                console.log("PAIRED2");
+                                                isPairAero2 = pair.isPairAERO; // Assign 1000 (example value)
+                                           
+                                            }
+                            
+                if(isPairAero2 = "True"){
+
+                    gasEstimate2 = await contract.estimateGas.performSwapAERO(liquidationPair, txFee);
+
+                }else{  
+
+
+                        gasEstimate2 = await contract.estimateGas.performSwap(liquidationPair, txFee);
+
+                        
+                }
+
+                // Call the contract function
+                //const tx = await contract.performSwap(liquidationPair, txFee);
+                //showStatus('Transaction submitted. Waiting for confirmation...', '');
+             /*   const tx = await contract.performSwap(liquidationPair, txFee, {
+                        gasLimit: gasEstimate2, // Set gas limit to the estimated value
+                        maxPriorityFeePerGas: PriorityFee,
+                        maxFeePerGas: maxFeePerGas2
+                    });
+
+                // Wait for transaction to be mined
+                await tx.wait();
+                */
+                const network = await provider.getNetwork();
+
+                if(network.chainId != 8453){
+                    console.log("Wrong Network");
+                    return;
+                    naferm = "Base Mainnet";
+                }else{
+                    naferm=network.name;
+                 }
+                showStatus('Swap READY!', 'success');
+                console.log("SWAP READY", liquidationPair);
+                var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                pair.TimeUntilLiquidationMAX = -1; // Assign 1000 (example value)
+                                                pair.TimeUntilLiquidationAVG = -1; // Assign 1000 (example value)
+                                           
+                                                console.log("HERE123 txFEE = ",txFee, " GAS ESTI = ",gasEstimate2)
+                                            }
+                const sound = new Audio('FogHorn.mp3');
+
+                // Play the sound twice
+                sound.play()
+                    .then(() => {
+                        console.log("First play started.");
+                        // Set up the event listener for when the sound ends
+                        sound.addEventListener("ended", () => {
+                            console.log("First play ended, starting second play.");
+                            sound.play()
+                                .then(() => console.log("Second play started."))
+                                .catch(error => console.error("Error playing sound the second time:", error));
+                        }, { once: true }); // Ensures the listener is called only once
+                    })
+                    .catch(error => {
+                        console.error("Error playing sound the first time:", error);
+                    });
+            } catch (error) {
+                console.error(error);
+                let errorMessage = error.message;
+                const WETHMatch_Needed = errorMessage.match(/Requires more WETH.*?(\d+)/);
+                const WETHMatch_Avail = errorMessage.match(/Available.*?(\d+)/);
+                const TxfeeGreaterAmountOutMatch = errorMessage.match(/Txfee.*?greater.*?AmountOut/);
+
+                if (errorMessage.includes("execution reverted:")) {
+                    // Extract just the time information
+                    const timeMatch = errorMessage.match(/This many seconds.*?(\d+)/);
+                    if (timeMatch) {
+                        
+                        var roundedTime = roundToSignificantDigits(timeMatch[1]/60, 4);
+                        // Add TimeUntilLiquidation to each pair
+
+                         var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                pair.TimeUntilLiquidationMAX = roundedTime; // Assign 1000 (example value)
+                                                if(roundedTime > pair.TimeUntilLiquidationAVG){
+                                                    pair.TimeUntilLiquidationAVG = "N/A"
+                                                }
+                                            }
+
+                        errorMessage = `execution reverted: This many minutes max until you will be at profitability: ${roundedTime}`;
+                    
+                    
+                        
+                            console.log("First run = ",firstrun[liquidationPair]);
+                        if(firstrun[liquidationPair] ==0){
+                            console.log("FIRST RUNNY");
+                                firstrun[liquidationPair] =1;
+                                previousSecs[liquidationPair]=timeMatch[1];
+                                currentTime[liquidationPair] = new Date();
+                                currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+
+                                EstimatedFee[liquidationPair] = txFee.value;
+                            console.log("CURRENT TIME: ",currentTimeInSeconds);  // Displays time in seconds
+                        }else if(firstrun[liquidationPair].value != timeMatch[1]){
+                                if(txFee != EstimatedFee[liquidationPair]){
+                                    console.log("BIGGER GO");
+                                        previousSecs[liquidationPair]=timeMatch[1];
+                                        currentTime[liquidationPair] = new Date();
+                                        currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+
+
+                                }else{
+                                    console.log("SMALLER GO");
+                                    console.log("SMALLER txFee:"+txFee);
+                                    console.log("SMALLER EstimatedFee[liquidationPair]:"+EstimatedFee[liquidationPair]);
+                                }
+                                if(EstimatedFee[liquidationPair]==txFee){
+
+                                        
+                                        newDate[liquidationPair] = new Date();
+                                        currentTimeInSeconds2[liquidationPair] = Math.floor(newDate[liquidationPair].getTime() / 1000);
+                                        timeDifference[liquidationPair] = currentTimeInSeconds2[liquidationPair] - currentTimeInSeconds[liquidationPair];
+                                        TimeDifferenceContract[liquidationPair] = parseFloat(previousSecs[liquidationPair]) - parseFloat(timeMatch[1]);
+                                        console.log("parseFloat(timeMatch[1]): ",parseFloat(timeMatch[1]));  // Displays time in seconds
+                                        console.log("parseFloat(previousSecs[liquidationPair]): ",parseFloat(previousSecs[liquidationPair]));  // Displays time in seconds
+                                        tttt[liquidationPair] = parseFloat(TimeDifferenceContract[liquidationPair])/parseFloat(timeDifference[liquidationPair]);
+                                        
+                                        totalTimeLeft = 1/tttt[liquidationPair] * parseFloat(timeMatch[1]);
+                                        console.log("THe Total Time really Left isparseFloat(TimeDifferenceContract[liquidationPair]): "+parseFloat(TimeDifferenceContract[liquidationPair]));
+                                        console.log( "THe Total Time really Left isparseFloat(timeDifference[liquidationPair]): "+parseFloat(timeDifference[liquidationPair]));
+                                        console.log("THe Total Time in minutes really Left is: "+totalTimeLeft/60);
+
+                                        console.log("assigning value: ",previousSecs[liquidationPair]," to rest-1previousSecs[liquidationPair]");
+                                        currentTime[liquidationPair] = new Date();
+                                        //currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+                                        if(timeMatch[1]>totalTimeLeft ){
+
+                                            var roundedTime2 = roundToSignificantDigits(totalTimeLeft/60, 4);
+                          
+                                            var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                pair.TimeUntilLiquidationAVG = roundedTime2;
+                                                pair.TimeUntilLiquidationMAX = roundedTime; // Assign 1000 (example value)
+                                           
+                                            }
+
+                                            errorMessage = `This many minutes max until at profitability: ${roundedTime}\nThis many minutes Average Rate: `+roundedTime2;
+                            
+                                        }
+                                        firstrun[liquidationPair] = timeMatch[1];
+
+                            }else {
+                                console.log("rest")
+                                previousSecs[liquidationPair]=timeMatch[1];
+                                EstimatedFee[liquidationPair] = txFee;
+                                currentTime[liquidationPair] = new Date();
+                                        currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+                                        
+
+                            }
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        }else if(WETHMatch_Needed){
+                            errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
+
+                            var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                pair.TimeUntilLiquidationAVG = "N/A";
+                                                pair.TimeUntilLiquidationMAX = "N/A";
+                                           
+                                            }
+                        }
+                    }else if (WETHMatch_Needed) {
+                        errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
+                   
+                        var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                pair.TimeUntilLiquidationAVG = "N/A";
+                                                pair.TimeUntilLiquidationMAX = "N/A";
+                                           
+                                            }
+                    }else if(TxfeeGreaterAmountOutMatch){
+                        errorMessage = 'Gas Fees are very expensive for this pairs liquidation amount';
+                     
+                        var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                                            if (pair) {
+                                                pair.TimeUntilLiquidationAVG = "N/A";
+                                                pair.TimeUntilLiquidationMAX = "N/A";
+                                           
+                                            }
+                    }
+                    showStatus(`Status: ${errorMessage}`, 'error');
+                    
+                
+            }
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         function showStatus(message, type) {
             const statusDiv = document.getElementById('status');
             statusDiv.textContent = message;
             statusDiv.className = type;
         }
+
+
+
+
+
+
+
+
+
+
+        
+
+
+const toggle = document.getElementById('toggleButton');
+let isEnabled = true;
+
+toggle.addEventListener('change', () => {
+ isEnabled = !isEnabled;
+ console.log('Toggle state:', isEnabled);
+});
+
+
+const toggle2 = document.getElementById('toggleButton2');
+let isEnabled2 = true;
+
+toggle2.addEventListener('change', () => {
+ isEnabled2 = !isEnabled2;
+ console.log('Toggle state2:', isEnabled2);
+});
+
+
+
+        // Initial render
+        console.log("running liquidation pairs")
+        renderTable(liquidationPairs);
+
+
     </script>
 </body>
 </html>
