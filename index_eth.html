@@ -964,7 +964,7 @@ async function setCustomRPC() {
       });
       console.log('Flashbots RPC set successfully');
 
-      await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x2105' }]  });
+      await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x1' }]  });
       
       console.log('Flashbots RPC SWITCHED successfully');
     } catch (error) {
@@ -998,7 +998,7 @@ async function UNsetCustomRPC() {
         });
       console.log('Custom RPC set successfully');
 
-      await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x2105' }]  });
+      await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x1' }]  });
       
       console.log('Custom RPC SWITCHED successfully');
     } catch (error) {
