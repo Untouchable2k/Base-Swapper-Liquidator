@@ -620,6 +620,7 @@ var connected2Metamask = false;
                 }
                 } catch (error) {
                     console.error("Error estimating gas:", error);
+                    await errorParser(error.message, liquidationPair);
                     gasEstimate2=maxFeePerGas2*600000;
                     // Estimate gas price
                     return;
@@ -731,112 +732,8 @@ var connected2Metamask = false;
                 }
             } catch (error) {
                 console.error(error);
-                let errorMessage = error.message;
-                const WETHMatch_Needed = errorMessage.match(/Requires more WETH.*?(\d+)/);
-                const WETHMatch_Avail = errorMessage.match(/Available.*?(\d+)/);
-                if (errorMessage.includes("execution reverted:")) {
-                    // Extract just the time information
-                    const timeMatch = errorMessage.match(/This many seconds.*?(\d+)/);
-                    if (timeMatch) {
-                        
-                        var roundedTime = roundToSignificantDigits(timeMatch[1]/60, 4);
-                        errorMessage = `execution reverted: This many minutes max until you will be at profitability: ${roundedTime}`;
-                    
-                                            var pair = liquidationPairs.find(p => p.address === liquidationPair);
-                                            if (pair) {
-                                                console.log("PAIRED2");
-                                                pair.TimeUntilLiquidationMAX = roundedTime; // Assign 1000 (example value)
-                                           
-                                            }
 
-                        
-                            console.log("First run = ",firstrun[liquidationPair]);
-                        if(firstrun[liquidationPair] ==0){
-                            console.log("FIRST RUNNY");
-                                firstrun[liquidationPair] =1;
-                                previousSecs[liquidationPair]=timeMatch[1];
-                                currentTime[liquidationPair] = new Date();
-                                currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
-
-                                EstimatedFee[liquidationPair] = txFee.value;
-                            console.log("CURRENT TIME: ",currentTimeInSeconds);  // Displays time in seconds
-                        }else if(firstrun[liquidationPair].value != timeMatch[1]){
-                                if(txFee != EstimatedFee[liquidationPair]){
-                                    console.log("BIGGER GO");
-                                        previousSecs[liquidationPair]=timeMatch[1];
-                                        currentTime[liquidationPair] = new Date();
-                                        currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
-
-
-                                }else{
-                                    console.log("SMALLER GO");
-                                    console.log("SMALLER txFee:"+txFee);
-                                    console.log("SMALLER EstimatedFee[liquidationPair]:"+EstimatedFee[liquidationPair]);
-                                }
-                                if(EstimatedFee[liquidationPair]==txFee){
-
-                                        
-                                        newDate[liquidationPair] = new Date();
-                                        currentTimeInSeconds2[liquidationPair] = Math.floor(newDate[liquidationPair].getTime() / 1000);
-                                        timeDifference[liquidationPair] = currentTimeInSeconds2[liquidationPair] - currentTimeInSeconds[liquidationPair];
-                                        TimeDifferenceContract[liquidationPair] = parseFloat(previousSecs[liquidationPair]) - parseFloat(timeMatch[1]);
-                                        console.log("parseFloat(timeMatch[1]): ",parseFloat(timeMatch[1]));  // Displays time in seconds
-                                        console.log("parseFloat(previousSecs[liquidationPair]): ",parseFloat(previousSecs[liquidationPair]));  // Displays time in seconds
-                                        tttt[liquidationPair] = parseFloat(TimeDifferenceContract[liquidationPair])/parseFloat(timeDifference[liquidationPair]);
-                                        
-                                        totalTimeLeft = 1/tttt[liquidationPair] * parseFloat(timeMatch[1]);
-                                        console.log("THe Total Time really Left isparseFloat(TimeDifferenceContract[liquidationPair]): "+parseFloat(TimeDifferenceContract[liquidationPair]));
-                                        console.log( "THe Total Time really Left isparseFloat(timeDifference[liquidationPair]): "+parseFloat(timeDifference[liquidationPair]));
-                                        console.log("THe Total Time in minutes really Left is: "+totalTimeLeft/60);
-
-                                        console.log("assigning value: ",previousSecs[liquidationPair]," to previousSecs[liquidationPair]");
-                                        currentTime[liquidationPair] = new Date();
-                                        //currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
-                                        if(timeMatch[1]>totalTimeLeft ){
-
-                                            var roundedTime2 = roundToSignificantDigits(totalTimeLeft/60, 4);
-                                            errorMessage = `This many minutes max until at profitability: ${roundedTime}\nThis many minutes Average Rate: `+roundedTime2;
-                                            var pair = liquidationPairs.find(p => p.address === liquidationPair);
-                                            if (pair) {
-                                                console.log("PAIRED");
-                                                pair.TimeUntilLiquidationAVG = roundedTime2;
-                                                pair.TimeUntilLiquidationMAX = roundedTime; // Assign 1000 (example value)
-                                                
-                                            }
-
-                                        }
-                                        firstrun[liquidationPair] = timeMatch[1];
-
-                            }else {
-                                console.log("rest")
-                                previousSecs[liquidationPair]=timeMatch[1];
-                                EstimatedFee[liquidationPair] = txFee;
-                                currentTime[liquidationPair] = new Date();
-                                        currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
-                                        
-
-                            }
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        }else if(WETHMatch_Needed){
-                            errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
-
-                        }
-                    }else if (WETHMatch_Needed) {
-                        errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
-                    }
-                    
-                    showStatus(`Error: ${errorMessage}`, 'error');
-                    
-                
-            }
+                await errorParser(error.message, liquidationPair);
         }
 
     }
@@ -1470,143 +1367,11 @@ var isPairAero2 ="F";
                     });
             } catch (error) {
                 console.error(error);
-                let errorMessage = error.message;
-                const WETHMatch_Needed = errorMessage.match(/Requires more WETH.*?(\d+)/);
-                const WETHMatch_Avail = errorMessage.match(/Available.*?(\d+)/);
-                const TxfeeGreaterAmountOutMatch = errorMessage.match(/Txfee.*?greater.*?AmountOut/);
-
-                if (errorMessage.includes("execution reverted:")) {
-                    // Extract just the time information
-                    const timeMatch = errorMessage.match(/This many seconds.*?(\d+)/);
-                    if (timeMatch) {
-                        
-                        var roundedTime = roundToSignificantDigits(timeMatch[1]/60, 4);
-                        // Add TimeUntilLiquidation to each pair
-
-                         var pair = liquidationPairs.find(p => p.address === liquidationPair);
-                                            if (pair) {
-                                                pair.TimeUntilLiquidationMAX = roundedTime; // Assign 1000 (example value)
-                                                if(roundedTime > pair.TimeUntilLiquidationAVG){
-                                                    pair.TimeUntilLiquidationAVG = "N/A"
-                                                }
-                                            }
-
-                        errorMessage = `execution reverted: This many minutes max until you will be at profitability: ${roundedTime}`;
-                    
-                    
-                        
-                            console.log("First run = ",firstrun[liquidationPair]);
-                        if(firstrun[liquidationPair] ==0){
-                            console.log("FIRST RUNNY");
-                                firstrun[liquidationPair] =1;
-                                previousSecs[liquidationPair]=timeMatch[1];
-                                currentTime[liquidationPair] = new Date();
-                                currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
-
-                                EstimatedFee[liquidationPair] = txFee.value;
-                            console.log("CURRENT TIME: ",currentTimeInSeconds);  // Displays time in seconds
-                        }else if(firstrun[liquidationPair].value != timeMatch[1]){
-                                if(txFee != EstimatedFee[liquidationPair]){
-                                    console.log("BIGGER GO");
-                                        previousSecs[liquidationPair]=timeMatch[1];
-                                        currentTime[liquidationPair] = new Date();
-                                        currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
-
-
-                                }else{
-                                    console.log("SMALLER GO");
-                                    console.log("SMALLER txFee:"+txFee);
-                                    console.log("SMALLER EstimatedFee[liquidationPair]:"+EstimatedFee[liquidationPair]);
-                                }
-                                if(EstimatedFee[liquidationPair]==txFee){
-
-                                        
-                                        newDate[liquidationPair] = new Date();
-                                        currentTimeInSeconds2[liquidationPair] = Math.floor(newDate[liquidationPair].getTime() / 1000);
-                                        timeDifference[liquidationPair] = currentTimeInSeconds2[liquidationPair] - currentTimeInSeconds[liquidationPair];
-                                        TimeDifferenceContract[liquidationPair] = parseFloat(previousSecs[liquidationPair]) - parseFloat(timeMatch[1]);
-                                        console.log("parseFloat(timeMatch[1]): ",parseFloat(timeMatch[1]));  // Displays time in seconds
-                                        console.log("parseFloat(previousSecs[liquidationPair]): ",parseFloat(previousSecs[liquidationPair]));  // Displays time in seconds
-                                        tttt[liquidationPair] = parseFloat(TimeDifferenceContract[liquidationPair])/parseFloat(timeDifference[liquidationPair]);
-                                        
-                                        totalTimeLeft = 1/tttt[liquidationPair] * parseFloat(timeMatch[1]);
-                                        console.log("THe Total Time really Left isparseFloat(TimeDifferenceContract[liquidationPair]): "+parseFloat(TimeDifferenceContract[liquidationPair]));
-                                        console.log( "THe Total Time really Left isparseFloat(timeDifference[liquidationPair]): "+parseFloat(timeDifference[liquidationPair]));
-                                        console.log("THe Total Time in minutes really Left is: "+totalTimeLeft/60);
-
-                                        console.log("assigning value: ",previousSecs[liquidationPair]," to rest-1previousSecs[liquidationPair]");
-                                        currentTime[liquidationPair] = new Date();
-                                        //currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
-                                        if(timeMatch[1]>totalTimeLeft ){
-
-                                            var roundedTime2 = roundToSignificantDigits(totalTimeLeft/60, 4);
-                          
-                                            var pair = liquidationPairs.find(p => p.address === liquidationPair);
-                                            if (pair) {
-                                                pair.TimeUntilLiquidationAVG = roundedTime2;
-                                                pair.TimeUntilLiquidationMAX = roundedTime; // Assign 1000 (example value)
-                                           
-                                            }
-
-                                            errorMessage = `This many minutes max until at profitability: ${roundedTime}\nThis many minutes Average Rate: `+roundedTime2;
-                            
-                                        }
-                                        firstrun[liquidationPair] = timeMatch[1];
-
-                            }else {
-                                console.log("rest")
-                                previousSecs[liquidationPair]=timeMatch[1];
-                                EstimatedFee[liquidationPair] = txFee;
-                                currentTime[liquidationPair] = new Date();
-                                        currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
-                                        
-
-                            }
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        }else if(WETHMatch_Needed){
-                            errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
-
-                            var pair = liquidationPairs.find(p => p.address === liquidationPair);
-                                            if (pair) {
-                                                pair.TimeUntilLiquidationAVG = "N/A";
-                                                pair.TimeUntilLiquidationMAX = "N/A";
-                                           
-                                            }
-                        }
-                    }else if (WETHMatch_Needed) {
-                        errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
-                   
-                        var pair = liquidationPairs.find(p => p.address === liquidationPair);
-                                            if (pair) {
-                                                pair.TimeUntilLiquidationAVG = "N/A";
-                                                pair.TimeUntilLiquidationMAX = "N/A";
-                                           
-                                            }
-                    }else if(TxfeeGreaterAmountOutMatch){
-                        errorMessage = 'Gas Fees are very expensive for this pairs liquidation amount';
-                     
-                        var pair = liquidationPairs.find(p => p.address === liquidationPair);
-                                            if (pair) {
-                                                pair.TimeUntilLiquidationAVG = "N/A";
-                                                pair.TimeUntilLiquidationMAX = "N/A";
-                                           
-                                            }
-                    }
-                    showStatus(`Status: ${errorMessage}`, 'error');
-                    
-                
+                await errorParser(error.message, liquidationPair);
             }
         }
 
-    }
+    
 
 
 
@@ -1659,6 +1424,148 @@ var isPairAero2 ="F";
 
 
 
+
+
+
+
+        async function errorParser(error, liquidationPair){
+
+
+let errorMessage = error;
+const WETHMatch_Needed = errorMessage.match(/Requires more WETH.*?(\d+)/);
+const WETHMatch_Avail = errorMessage.match(/Available.*?(\d+)/);
+const TxfeeGreaterAmountOutMatch = errorMessage.match(/Txfee.*?greater.*?AmountOut/);
+
+if (errorMessage.includes("execution reverted:")) {
+    // Extract just the time information
+    const timeMatch = errorMessage.match(/This many seconds.*?(\d+)/);
+    if (timeMatch) {
+        
+        var roundedTime = roundToSignificantDigits(timeMatch[1]/60, 4);
+        // Add TimeUntilLiquidation to each pair
+
+         var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                            if (pair) {
+                                pair.TimeUntilLiquidationMAX = roundedTime; // Assign 1000 (example value)
+                                if(roundedTime > pair.TimeUntilLiquidationAVG){
+                                    pair.TimeUntilLiquidationAVG = "N/A"
+                                }
+                            }
+
+        errorMessage = `execution reverted: This many minutes max until you will be at profitability: ${roundedTime}`;
+    
+    
+        
+          //  console.log("First run = ",firstrun[liquidationPair]);
+        if(firstrun[liquidationPair] ==0){
+           // console.log("FIRST RUNNY");
+                firstrun[liquidationPair] =1;
+                previousSecs[liquidationPair]=timeMatch[1];
+                currentTime[liquidationPair] = new Date();
+                currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+
+                EstimatedFee[liquidationPair] = txFee.value;
+           // console.log("CURRENT TIME: ",currentTimeInSeconds);  // Displays time in seconds
+        }else if(firstrun[liquidationPair].value != timeMatch[1]){
+                if(txFee != EstimatedFee[liquidationPair]){
+                  //  console.log("BIGGER GO");
+                        previousSecs[liquidationPair]=timeMatch[1];
+                        currentTime[liquidationPair] = new Date();
+                        currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+
+
+                }else{
+                   // console.log("SMALLER GO");
+                   // console.log("SMALLER txFee:"+txFee);
+                    //console.log("SMALLER EstimatedFee[liquidationPair]:"+EstimatedFee[liquidationPair]);
+                }
+                if(EstimatedFee[liquidationPair]==txFee){
+
+                        
+                        newDate[liquidationPair] = new Date();
+                        currentTimeInSeconds2[liquidationPair] = Math.floor(newDate[liquidationPair].getTime() / 1000);
+                        timeDifference[liquidationPair] = currentTimeInSeconds2[liquidationPair] - currentTimeInSeconds[liquidationPair];
+                        TimeDifferenceContract[liquidationPair] = parseFloat(previousSecs[liquidationPair]) - parseFloat(timeMatch[1]);
+                     //   console.log("parseFloat(timeMatch[1]): ",parseFloat(timeMatch[1]));  // Displays time in seconds
+                    //    console.log("parseFloat(previousSecs[liquidationPair]): ",parseFloat(previousSecs[liquidationPair]));  // Displays time in seconds
+                        tttt[liquidationPair] = parseFloat(TimeDifferenceContract[liquidationPair])/parseFloat(timeDifference[liquidationPair]);
+                        
+                        totalTimeLeft = 1/tttt[liquidationPair] * parseFloat(timeMatch[1]);
+                      console.log("THe Total Time really Left isparseFloat(TimeDifferenceContract[liquidationPair]): "+parseFloat(TimeDifferenceContract[liquidationPair]));
+                        console.log( "THe Total Time really Left isparseFloat(timeDifference[liquidationPair]): "+parseFloat(timeDifference[liquidationPair]));
+                        console.log("THe Total Time in minutes really Left is: "+totalTimeLeft/60);
+
+                        console.log("assigning value: ",previousSecs[liquidationPair]," to rest-1previousSecs[liquidationPair]");
+                        currentTime[liquidationPair] = new Date();
+                        //currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+                        if(timeMatch[1]>totalTimeLeft ){
+
+                            var roundedTime2 = roundToSignificantDigits(totalTimeLeft/60, 4);
+          
+                            var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                            if (pair) {
+                                pair.TimeUntilLiquidationAVG = roundedTime2;
+                                pair.TimeUntilLiquidationMAX = roundedTime; // Assign 1000 (example value)
+                           
+                            }
+
+                            errorMessage = `This many minutes max until at profitability: ${roundedTime}\nThis many minutes Average Rate: `+roundedTime2;
+            
+                        }
+                        firstrun[liquidationPair] = timeMatch[1];
+
+            }else {
+                console.log("rest")
+                previousSecs[liquidationPair]=timeMatch[1];
+                EstimatedFee[liquidationPair] = txFee;
+                currentTime[liquidationPair] = new Date();
+                        currentTimeInSeconds[liquidationPair] = Math.floor(currentTime[liquidationPair].getTime() / 1000);
+                        
+
+            }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        }else if(WETHMatch_Needed){
+            errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
+
+            var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                            if (pair) {
+                                pair.TimeUntilLiquidationAVG = "N/A";
+                                pair.TimeUntilLiquidationMAX = "N/A";
+                           
+                            }
+        }
+    }else if (WETHMatch_Needed) {
+        errorMessage = `execution reverted: This many WETH are required on the contract ${WETHMatch_Needed[1]/1e18}\nContract only has  ${WETHMatch_Avail[1]/1e18} WETH`;
+   
+        var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                            if (pair) {
+                                pair.TimeUntilLiquidationAVG = "N/A";
+                                pair.TimeUntilLiquidationMAX = "N/A";
+                           
+                            }
+    }else if(TxfeeGreaterAmountOutMatch){
+        errorMessage = 'Gas Fees are very expensive for this pairs liquidation amount';
+     
+        var pair = liquidationPairs.find(p => p.address === liquidationPair);
+                            if (pair) {
+                                pair.TimeUntilLiquidationAVG = "N/A";
+                                pair.TimeUntilLiquidationMAX = "N/A";
+                           
+                            }
+    }
+    showStatus(`Status: ${errorMessage}`, 'error');
+    
+
+}
+}
 
 
 
