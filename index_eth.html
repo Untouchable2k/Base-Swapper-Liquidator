@@ -945,7 +945,7 @@ async function setCustomRPC() {
     go12 = 12;
     usingCustomRPC = true;
   // Check if MetaMask is installed
-  alert("Switch Networks to Direct Sequencer to avoid MEV.  Approve Custom RPC in Wallet");
+  alert("Switch Networks to Flashbots RPC to avoid MEV.  Approve Flashbots RPC in Wallet");
   if (window.ethereum) {
     try {
         await ethereum.request({
@@ -962,11 +962,11 @@ async function setCustomRPC() {
           blockExplorerUrls: ['https://etherscan.io']
         }]
       });
-      console.log('Custom RPC set successfully');
+      console.log('Flashbots RPC set successfully');
 
       await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x2105' }]  });
       
-      console.log('Custom RPC SWITCHED successfully');
+      console.log('Flashbots RPC SWITCHED successfully');
     } catch (error) {
       console.error('Error setting custom RPC:', error);
     }
