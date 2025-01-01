@@ -907,7 +907,7 @@ var connected2Metamask = false;
 
                 lastButtonClickTime = Date.now();
             }
-            if (currentTime - lastButtonClickTime3 >= 61000 && !usingCustomRPC) { // 60 seconds in milliseconds, refresh gas data so we can get a double look
+            if (currentTime - lastButtonClickTime3 >= 121000 && !usingCustomRPC) { // 60 seconds in milliseconds, refresh gas data so we can get a double look
                 console.log("reset refresh3");
                 await preformGasCalculations();
 
