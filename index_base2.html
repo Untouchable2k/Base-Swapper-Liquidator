@@ -848,9 +848,11 @@ async function getRLPEncodedTransaction(contract, gasLimit, maxFeePerGas,maxPrio
 
     console.log("RLP Encoded Transaction:", rlpEncoded);
 
-
-    const callEstimateFee = await contractOpti.getL1Fee(rlpEncoded);
-
+    try{
+        const callEstimateFee = await contractOpti.getL1Fee(rlpEncoded);
+    }catch(error){
+        const callEstimateFee = ethers.BigNumber.from(0)
+    }
 
         console.log("L1 Fee (in wei):", callEstimateFee.toString());
 
@@ -1401,7 +1403,7 @@ async function getTransactionData(contract, methodName, params) {
                             var duration = 10000; //Pause for 10 seconds between submissions
                             console.log("10 seconds before next submit chance");
                             new Promise(resolve => setTimeout(resolve, duration));
-                            go12 = 11;
+                            go12 = 13;
 
                         } catch (error) {
                             console.error('Transaction failed using private key:', error);
@@ -1409,7 +1411,7 @@ async function getTransactionData(contract, methodName, params) {
                             var duration = 10000; //Pause for 10 seconds between submissions
                             console.log("10 seconds before next submit chance");
                             new Promise(resolve => setTimeout(resolve, duration));
-                            go12 = 11;
+                            go12 = 13;
 
                             
                         }
@@ -1464,7 +1466,7 @@ async function getTransactionData(contract, methodName, params) {
                 var duration = 10000; //Pause for 10 seconds between submissions
                             console.log("10 seconds before next submit chance");
                             new Promise(resolve => setTimeout(resolve, duration));
-                            go12 = 11;
+                            go12 = 13;
 
 
                         
@@ -2953,7 +2955,7 @@ async function getUsdcEthPrice(poolAddress) {
     return price.toString();
   } catch (error) {
     console.error('Error fetching pool price:', error);
-    throw error;
+    return 1;
   }
 }
 
