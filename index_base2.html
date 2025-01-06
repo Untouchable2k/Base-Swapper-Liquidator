@@ -848,12 +848,11 @@ async function getRLPEncodedTransaction(contract, gasLimit, maxFeePerGas,maxPrio
 
     console.log("RLP Encoded Transaction:", rlpEncoded);
 
-    var callEstimateFee = ethers.BigNumber.from(0)
-    try{
+    var callEstimateFee = ethers.BigNumber.from(99999999999999)
         callEstimateFee = await contractOpti.getL1Fee(rlpEncoded);
     }catch(error){
         console.log("Skippy error found");
-        callEstimateFee = ethers.BigNumber.from(0)
+        callEstimateFee = ethers.BigNumber.from(99999999999999)
     }
 
         console.log("L1 Fee (in wei):", callEstimateFee.toString());
