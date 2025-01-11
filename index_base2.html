@@ -823,9 +823,8 @@ async function getRLPEncodedTransaction(contract, gasLimit, maxFeePerGas, maxPri
         try {
             nonce = await provider.getTransactionCount(signer.address);
         } catch (error) {
-            console.error("Error getting transaction count:", error);
-            // You might want to handle this specifically, maybe retry or return a specific error
-            throw error; // or handle it differently based on your needs
+            console.error("Error getting transaction count: Sending 10$ value instead of calced value ERROR: ", error);
+           return ethers.BigNumber.from(3030303030303030); // or handle it differently based on your needs
         }
 
         const gasPrice = await provider.getGasPrice();
