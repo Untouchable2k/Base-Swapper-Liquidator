@@ -812,61 +812,66 @@ function loadFromCache(data) {
         }
 
 
+async function getRLPEncodedTransaction(contract, gasLimit, maxFeePerGas, maxPriorityFeePerGas, functionName, params, provider, signer, txData) {
+    try {
+        // Step 1: Encode function data using the contract ABI
+        const functionData = contract.interface.encodeFunctionData(functionName, params);
+        contractOpti = new ethers.Contract("0x420000000000000000000000000000000000000F", contractABI, signer);
+        
+        // Step 2: Fetch the necessary transaction parameters
+        let nonce;
+        try {
+            nonce = await provider.getTransactionCount(signer.address);
+        } catch (error) {
+            console.error("Error getting transaction count:", error);
+            // You might want to handle this specifically, maybe retry or return a specific error
+            throw error; // or handle it differently based on your needs
+        }
 
-async function getRLPEncodedTransaction(contract, gasLimit, maxFeePerGas,maxPriorityFeePerGas, functionName, params, provider, signer, txData) {
-    // Step 1: Encode function data using the contract ABI
-    const functionData = contract.interface.encodeFunctionData(functionName, params);
+        const gasPrice = await provider.getGasPrice();
+        const gasLimit2 = gasLimit;
+        const chainId = (await provider.getNetwork()).chainId;
+        const recipientAddress = contractAddress;
+        console.log("from: ", signer.address)
 
-    contractOpti = new ethers.Contract("0x420000000000000000000000000000000000000F", contractABI, signer);
-    // Step 2: Fetch the necessary transaction parameters
-    const nonce = await provider.getTransactionCount(signer.address);
-    const gasPrice = await provider.getGasPrice();
-    const gasLimit2 = gasLimit;
-    const chainId = (await provider.getNetwork()).chainId;
-    const recipientAddress = contractAddress;
-    console.log("from: ", signer.address)
-    // Step 3: Build the transaction object
-    const tx = {
-        chainId: ethers.BigNumber.from(chainId),  // Chain ID
-        nonce: ethers.BigNumber.from(nonce),     // Nonce
-        maxPriorityFeePerGas: ethers.BigNumber.from(maxPriorityFeePerGas), // Priority Fee
-        maxFeePerGas: ethers.BigNumber.from(maxFeePerGas),                 // Max Fee
-        gasLimit: ethers.BigNumber.from(gasLimit2), // Gas Limit
-        to: contractAddress,                     // Recipient Address
-        value: ethers.BigNumber.from(0),      // Value in wei
-        data: txData,                             // Transaction data
-        accessList: [],                            // Typically empty for basic transactions
-        from: signer.address,                      // Sender's address
-        type: 2  
-    };
+        // Rest of your code...
+        const tx = {
+            chainId: ethers.BigNumber.from(chainId),
+            nonce: ethers.BigNumber.from(nonce),
+            maxPriorityFeePerGas: ethers.BigNumber.from(maxPriorityFeePerGas),
+            maxFeePerGas: ethers.BigNumber.from(maxFeePerGas),
+            gasLimit: ethers.BigNumber.from(gasLimit2),
+            to: contractAddress,
+            value: ethers.BigNumber.from(0),
+            data: txData,
+            accessList: [],
+            from: signer.address,
+            type: 2
+        };
 
-    console.log("Raw Transaction Object:", tx);
-
-    
-        // RLP-encode the unsigned transaction
+        console.log("Raw Transaction Object:", tx);
         const rlpEncoded = ethers.utils.serializeTransaction(tx);
-
-    console.log("RLP Encoded Transaction:", rlpEncoded);
-
-    var callEstimateFee = ethers.BigNumber.from(99999999999999)
-    try{
-        callEstimateFee = await contractOpti.getL1Fee(rlpEncoded);
-    }catch(error){
-        console.log("Skippy error found");
-        callEstimateFee = ethers.BigNumber.from(99999999999999)
-    }
-
+        console.log("RLP Encoded Transaction:", rlpEncoded);
+        
+        var callEstimateFee = ethers.BigNumber.from(99999999999999)
+        try {
+            callEstimateFee = await contractOpti.getL1Fee(rlpEncoded);
+        } catch(error) {
+            console.log("Skippy error found");
+            callEstimateFee = ethers.BigNumber.from(99999999999999)
+        }
+        
         console.log("L1 Fee (in wei):", callEstimateFee.toString());
-
-        // If you want to format it into ETH
         const feeInEth = ethers.utils.formatEther(callEstimateFee);
         console.log("L1 Fee (in ETH):", feeInEth);
-
-
-    return callEstimateFee;
+        return callEstimateFee;
+        
+    } catch (error) {
+        console.error("Error in getRLPEncodedTransaction:", error);
+        console.error("Error in getRLPEncodedTransaction Sending 10$ value instead of calced:", error);
+       return ethers.BigNumber.from(3030303030303030); // or handle it differently based on your needs
+    }
 }
-
-
 
 
 async function getTransactionData(contract, methodName, params) {
