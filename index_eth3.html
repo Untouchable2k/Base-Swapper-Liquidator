@@ -1521,37 +1521,43 @@ function loadFromCache(data) {
         var runsMustBeAbove2 = 2;
         // Function to check if 60 seconds have passed without a button click
             async function autoRefreshTable() {
-             //   console.log("Auto refresh");
-            const currentTime = Date.now();
-            if (currentTime - lastButtonClickTime1 >= 1000) { // 60 seconds in milliseconds
-               // console.log("reset refresh1");
-                refreshTable();
-            }
-            if (currentTime - lastButtonClickTime >= 10000 && !usingCustomRPC) { // 60 seconds in milliseconds
-                console.log("reset refresh2 runsbove2 = ", runsMustBeAbove2);
-                await preformAllCalculations();
-                runsMustBeAbove2 = runsMustBeAbove2 + 1;
+				try{
+						 //   console.log("Auto refresh");
+						const currentTime = Date.now();
+						if (currentTime - lastButtonClickTime1 >= 1000) { // 60 seconds in milliseconds
+						   // console.log("reset refresh1");
+							refreshTable();
+						}
+						if (currentTime - lastButtonClickTime >= 10000 && !usingCustomRPC) { // 60 seconds in milliseconds
+							console.log("reset refresh2 runsbove2 = ", runsMustBeAbove2);
+							await preformAllCalculations();
+							runsMustBeAbove2 = runsMustBeAbove2 + 1;
 
-                lastButtonClickTime = Date.now();
-            }
-            if (currentTime - lastButtonClickTime3 >= 60000 && !usingCustomRPC && runsMustBeAbove2 >=2) { // 60 seconds in milliseconds, refresh gas data so we can get a double look
-                console.log("reset refresh3 runsbove2 = ", runsMustBeAbove2);
-                await preformGasCalculations_Single_All();
-                runsMustBeAbove2 = 0;
-                lastButtonClickTime3 = Date.now();
+							lastButtonClickTime = Date.now();
+						}
+						if (currentTime - lastButtonClickTime3 >= 60000 && !usingCustomRPC && runsMustBeAbove2 >=2) { // 60 seconds in milliseconds, refresh gas data so we can get a double look
+							console.log("reset refresh3 runsbove2 = ", runsMustBeAbove2);
+							await preformGasCalculations_Single_All();
+							runsMustBeAbove2 = 0;
+							lastButtonClickTime3 = Date.now();
 
-            }
-            if(go12 == 13){
-                go12 = 11;
-               if(connected2Metamask == true){
-                   await UNsetCustomRPC();
-                }else{
+						}
+						if(go12 == 13){
+							go12 = 11;
+						   if(connected2Metamask == true){
+							   await UNsetCustomRPC();
+							}else{
 
-                   await resetBackToNoAccount();
-                }
-                usingCustomRPC = false;
-            }
-            setTimeout(autoRefreshTable, 2000); // Check every second
+							   await resetBackToNoAccount();
+							}
+							usingCustomRPC = false;
+						}
+						setTimeout(autoRefreshTable, 2000); // Check every second
+					    } catch (error) {
+						  console.error('Error running autoRefreshTable');
+							sleep(30);
+							setTimeout(autoRefreshTable, 2000); // Check every second
+						}
         }
 
 
@@ -1720,6 +1726,9 @@ var isPairAero2 ="F";
                             if(pair.TimeUntilLiquidationAVG != null && pair.TimeUntilLiquidationAVG != undefined && pair.TimeUntilLiquidationAVG !="N/A"){
                                 console.log("Importing Custom Runtime")
                                 timeUntilLiqAvg = parseFloat(pair.TimeUntilLiquidationAVG)*60; //60 seconds per Minute
+								if(timeUntilLiqAvg > 60*60*2){
+									timeUntilLiqAvg = 60*60*2.0
+								}
                             }
                             var goagainIn = timeUntilLiqAvg/20;   
                             var newWaitTime = currentTime12 +goagainIn*1000
@@ -2923,7 +2932,7 @@ async function getUsdcEthPrice(poolAddress) {
         return formattedPrice;
     } catch (error) {
         console.error('Error fetching pool price:', error);
-        throw error;
+        return 1;
     }
 }
 
